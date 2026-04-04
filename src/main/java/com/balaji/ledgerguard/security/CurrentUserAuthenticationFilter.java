@@ -1,9 +1,11 @@
 package com.balaji.ledgerguard.security;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -38,18 +40,18 @@ public class CurrentUserAuthenticationFilter extends OncePerRequestFilter {
         String userIdHeader = request.getHeader(USER_ID_HEADER);
 
         if (userIdHeader == null || userIdHeader.isBlank()) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "X-USER-ID header is required");
+            writeProblemDetail(response, HttpStatus.UNAUTHORIZED, "Unauthorized", "X-USER-ID header is required");
             return;
         }
 
         User currentUser = currentUserService.resolveActiveUser(userIdHeader.trim());
         if (currentUser == null) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Current user not found");
+            writeProblemDetail(response, HttpStatus.UNAUTHORIZED, "Unauthorized", "Current user not found");
             return;
         }
 
         if (currentUser.getStatus() != com.balaji.ledgerguard.enums.UserStatus.ACTIVE) {
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Current user is inactive");
+            writeProblemDetail(response, HttpStatus.FORBIDDEN, "Forbidden", "Current user is inactive");
             return;
         }
 
@@ -65,5 +67,20 @@ public class CurrentUserAuthenticationFilter extends OncePerRequestFilter {
         } finally {
             SecurityContextHolder.clearContext();
         }
+    }
+
+    private void writeProblemDetail(HttpServletResponse response, HttpStatus status, String title, String detail)
+            throws IOException {
+        response.setStatus(status.value());
+        response.setContentType("application/problem+json");
+        String safeDetail = detail.replace("\"", "\\\"");
+        String body = "{" +
+                "\"type\":\"https://ledgerguard.example/" + status.value() + "\"," +
+                "\"title\":\"" + title + "\"," +
+                "\"status\":" + status.value() + "," +
+                "\"detail\":\"" + safeDetail + "\"," +
+                "\"timestamp\":\"" + Instant.now() + "\"" +
+                "}";
+        response.getWriter().write(body);
     }
 }

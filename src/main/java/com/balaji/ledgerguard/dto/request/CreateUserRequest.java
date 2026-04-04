@@ -10,12 +10,12 @@ import jakarta.validation.constraints.Size;
 
 public class CreateUserRequest {
 
-    @NotBlank(message = "Name is required")
-    @Size(max = 100, message = "Name must be at most 100 characters")
-    private String name;
+    @NotBlank(message = "Username is required")
+    @Size(max = 100, message = "Username must be at most 100 characters")
+    private String username;
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email must be valid")
+    @NotBlank(message = "Valid email required")
+    @Email(message = "Valid email required")
     @Size(max = 120, message = "Email must be at most 120 characters")
     private String email;
 
@@ -24,12 +24,22 @@ public class CreateUserRequest {
 
     private UserStatus status;
 
-    public String getName() {
-        return name;
+    public String getUsername() {
+        return username;
     }
 
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    // Backward-compatible accessor used by existing service layer.
+    public String getName() {
+        return username;
+    }
+
+    // Backward-compatible mutator used by existing service layer.
     public void setName(String name) {
-        this.name = name;
+        this.username = name;
     }
 
     public String getEmail() {
